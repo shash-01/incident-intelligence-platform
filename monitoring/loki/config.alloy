@@ -1,0 +1,47 @@
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+discovery.docker "services" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "microservices" {
+  targets = discovery.docker.services.targets
+
+  // Keep only our three application containers
+  rule {
+    action        = "keep"
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(user-service|order-service|payment-service)"
+  }
+
+  // Create a clean service_name label
+  rule {
+    action        = "replace"
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service_name"
+  }
+}
+
+loki.source.docker "services" {
+  host = "unix:///var/run/docker.sock"
+
+  targets = discovery.relabel.microservices.output
+
+  labels = {
+    platform = "microservices",
+  }
+
+  relabel_rules = discovery.relabel.microservices.rules
+
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

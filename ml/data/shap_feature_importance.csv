@@ -1,0 +1,6 @@
+feature,mean_abs_shap
+memory,0.8612620310431741
+request_rate,0.6173470174518997
+cpu,0.596943852358689
+latency,0.45726626881613136
+error_rate,0.0
